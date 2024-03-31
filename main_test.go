@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/sync/errgroup"
 )
 
 func TestRun(t *testing.T) {
+	assert := assert.New(t)
+
 	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("failed to listen port %v", err)
@@ -35,9 +38,10 @@ func TestRun(t *testing.T) {
 	}
 
 	want := fmt.Sprintf("Hello, %s!", in)
-	if string(got) != want {
-		t.Errorf("want %q, but got %q", want, got)
-	}
+	assert.Equal(string(got), want)
+	// if string(got) != want {
+	// 	t.Errorf("want %q, but got %q", want, got)
+	// }
 
 	cancel()
 

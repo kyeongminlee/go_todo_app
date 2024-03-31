@@ -12,18 +12,6 @@ import (
 )
 
 func main() {
-	// err := http.ListenAndServe(
-	// 	":18080",
-	// 	http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 		fmt.Fprintf(w, "Hello, %s!", r.URL.Path[1:])
-	// 	}),
-	// )
-
-	// if err != nil {
-	// 	fmt.Printf("Failed to terminate server: %v", err)
-	// 	os.Exit(1)
-	// }
-
 	if len(os.Args) != 2 {
 		log.Printf("need port number\n")
 		os.Exit(1)
@@ -36,12 +24,10 @@ func main() {
 	if err := run(context.Background(), listener); err != nil {
 		log.Printf("failed to terminate server: %v", err)
 	}
-
-	// s.ListenAndServe()
 }
 
 func run(ctx context.Context, listner net.Listener) error {
-	s := &http.Server{
+	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Hello, %s!", r.URL.Path[1:])
 		}),
@@ -50,7 +36,7 @@ func run(ctx context.Context, listner net.Listener) error {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		if err := s.Serve(listner); err != nil &&
+		if err := server.Serve(listner); err != nil &&
 			err != http.ErrServerClosed {
 			log.Printf("failed to close: %+v", err)
 			return err
@@ -59,7 +45,7 @@ func run(ctx context.Context, listner net.Listener) error {
 	})
 
 	<-ctx.Done()
-	if err := s.Shutdown(context.Background()); err != nil {
+	if err := server.Shutdown(context.Background()); err != nil {
 		log.Printf("failed to shutdown: %+v", err)
 	}
 
