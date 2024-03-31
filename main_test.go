@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"testing"
 
@@ -11,13 +12,19 @@ import (
 )
 
 func TestRun(t *testing.T) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("failed to listen port %v", err)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return run(ctx)
+		return run(ctx, listener)
 	})
 	in := "message"
-	rsp, err := http.Get("http://localhost:18080/" + in)
+	url := fmt.Sprintf("http://%s/%s", listener.Addr().String(), in)
+	t.Logf("try request to %q", url)
+	rsp, err := http.Get(url)
 	if err != nil {
 		t.Errorf("failed to get: %+v", err)
 	}
@@ -27,7 +34,7 @@ func TestRun(t *testing.T) {
 		t.Fatalf("failed to read body: %v", err)
 	}
 
-	want := fmt.Sprintf("Hi, %s!", in)
+	want := fmt.Sprintf("Hello, %s!", in)
 	if string(got) != want {
 		t.Errorf("want %q, but got %q", want, got)
 	}
