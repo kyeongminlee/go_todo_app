@@ -8,7 +8,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	wantPort := 3333
+	wantPort := 80
 	t.Setenv("Port", fmt.Sprint(wantPort))
 
 	got, err := New()
