@@ -12,8 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func TestRun(t *testing.T) {
-	t.Skip("리팩터링 중")
+func TestServer_Run(t *testing.T) {
 	assert := assert.New(t)
 
 	listener, err := net.Listen("tcp", "localhost:0")
@@ -22,9 +21,12 @@ func TestRun(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	eg, ctx := errgroup.WithContext(ctx)
+	mux := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintf(writer, "Hello, %s!", request.URL.Path[1:])
+	})
 	eg.Go(func() error {
-		// return run(ctx, listener)
-		return run(ctx)
+		s := NewServer(listener, mux)
+		return s.Run(ctx)
 	})
 	in := "message"
 	url := fmt.Sprintf("http://%s/%s", listener.Addr().String(), in)
@@ -41,9 +43,6 @@ func TestRun(t *testing.T) {
 
 	want := fmt.Sprintf("Hello, %s!", in)
 	assert.Equal(string(got), want)
-	// if string(got) != want {
-	// 	t.Errorf("want %q, but got %q", want, got)
-	// }
 
 	cancel()
 
