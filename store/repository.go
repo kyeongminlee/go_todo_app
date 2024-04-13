@@ -8,6 +8,7 @@ import (
 	"go_todo_app/config"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
 
