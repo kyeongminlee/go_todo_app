@@ -2,28 +2,34 @@
 .DEFAULT_GOAL := help
 
 DOCKER_TAG := latest
-build: ## 배포용 도커 이미지 빌드
-	docker build -t kyeongmin/gotodo:${DOCKER_TAG} \
+build: ## Build docker image to deploy
+	docker build -t budougumi0617/gotodo:${DOCKER_TAG} \
 		--target deploy ./
 
-build-local: ## 로컬 환경용 도커 이미지 빌드
+build-local: ## Build docker image to local development
 	docker compose build --no-cache
 
-up: ## 자동 새로고침을 사용한 도커 컴포즈 실행
+up: ## Do docker compose up with hot reload
 	docker compose up -d
 
-down: ## 도커 컴포즈 종료
+down: ## Do docker compose down
 	docker compose down
 
-logs: ## 도커 컴포즈 로그 출력
+logs: ## Tail docker compose logs
 	docker compose logs -f
 
-ps: ## 컨테이너 상태 확인
+ps: ## Check container status
 	docker compose ps
 
-test: ## 테스트 실행
+test: ## Execute tests
 	go test -race -shuffle=on ./...
 
-help: ## 옵션 보기
+dry-migrate: ## Try migration
+	mysqldef -u todo -p todo -h 127.0.0.1 -P 33306 todo --dry-run < ./_tools/mysql/schema.sql
+
+migrate:  ## Execute migration
+	mysqldef -u todo -p todo -h 127.0.0.1 -P 33306 todo < ./_tools/mysql/schema.sql
+
+help: ## Show options
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
