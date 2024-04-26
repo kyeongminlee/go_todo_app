@@ -51,7 +51,7 @@ func New(ctx context.Context, config *config.Config) (*sqlx.DB, func(), error) {
 		fmt.Sprintf(
 			"%s:%s@tcp(%s:%d)/%s?parseTime=true",
 			config.DBUser, config.DBPassword,
-			config.DBHost, config.Port,
+			config.DBHost, config.DBPort,
 			config.DBName,
 		),
 	)

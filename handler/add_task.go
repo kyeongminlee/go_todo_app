@@ -2,16 +2,16 @@ package handler
 
 import (
 	"encoding/json"
+	"github.com/go-playground/validator"
+	"github.com/jmoiron/sqlx"
 	"go_todo_app/entity"
 	"go_todo_app/store"
 	"net/http"
-	"time"
-
-	"github.com/go-playground/validator"
 )
 
 type AddTask struct {
-	Store     *store.TaskStore
+	DB        *sqlx.DB
+	Repo      *store.Repository
 	Validator *validator.Validate
 }
 
@@ -34,11 +34,10 @@ func (at *AddTask) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	task := &entity.Task{
-		Title:   b.Title,
-		Status:  "todo",
-		Created: time.Now(),
+		Title:  b.Title,
+		Status: entity.TaskStatusTodo,
 	}
-	id, err := store.Tasks.Add(task)
+	err := at.Repo.AddTask(ctx, at.DB, task)
 	if err != nil {
 		RespondJSON(ctx, writer, &ErrResponse{
 			Message: err.Error(),
@@ -47,6 +46,6 @@ func (at *AddTask) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	}
 	response := struct {
 		ID int `json:"id"`
-	}{ID: int(id)}
+	}{ID: int(task.ID)}
 	RespondJSON(ctx, writer, response, http.StatusOK)
 }
