@@ -5,6 +5,7 @@ import (
 	"go_todo_app/clock"
 	"go_todo_app/config"
 	"go_todo_app/handler"
+	"go_todo_app/service"
 	"go_todo_app/store"
 	"log"
 	"net/http"
@@ -31,15 +32,19 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 	}
 
 	addTask := &handler.AddTask{
-		DB:        db,
-		Repo:      &repository,
+		Service: &service.AddTask{
+			DB:   db,
+			Repo: &repository,
+		},
 		Validator: validator,
 	}
 	mux.Post("/tasks", addTask.ServeHTTP)
 
 	listTask := &handler.ListTask{
-		DB:   db,
-		Repo: &repository,
+		Service: &service.ListTask{
+			DB:   db,
+			Repo: &repository,
+		},
 	}
 	mux.Get("/tasks", listTask.ServeHTTP)
 
