@@ -3,33 +3,38 @@ package handler
 import (
 	"encoding/json"
 	"github.com/go-playground/validator"
+	"go_todo_app/entity"
 	"net/http"
 )
 
-type AddTask struct {
-	Service   AddTaskService
+type RegisterUser struct {
+	Service   RegisterUserService
 	Validator *validator.Validate
 }
 
-func (at *AddTask) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (ru *RegisterUser) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	ctx := request.Context()
 	var b struct {
-		Title string `json:"title" validate:"required"`
+		Name     string `json:"name" validate:"required"`
+		Password string `json:"password" validate:"required"`
+		Role     string `json:"role" validate:"required"`
 	}
+
 	if err := json.NewDecoder(request.Body).Decode(&b); err != nil {
 		RespondJSON(ctx, writer, &ErrResponse{
 			Message: err.Error(),
 		}, http.StatusInternalServerError)
 		return
 	}
-	if err := at.Validator.Struct(b); err != nil {
+
+	if err := ru.Validator.Struct(b); err != nil {
 		RespondJSON(ctx, writer, &ErrResponse{
 			Message: err.Error(),
 		}, http.StatusBadRequest)
 		return
 	}
 
-	task, err := at.Service.AddTask(ctx, b.Title)
+	user, err := ru.Service.RegisterUser(ctx, b.Name, b.Password, b.Role)
 	if err != nil {
 		RespondJSON(ctx, writer, &ErrResponse{
 			Message: err.Error(),
@@ -37,7 +42,7 @@ func (at *AddTask) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 	response := struct {
-		ID int `json:"id"`
-	}{ID: int(task.ID)}
+		ID entity.UserID `json:"id"`
+	}{ID: user.ID}
 	RespondJSON(ctx, writer, response, http.StatusOK)
 }

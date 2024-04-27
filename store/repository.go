@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"go_todo_app/clock"
 	"go_todo_app/config"
@@ -42,6 +43,14 @@ var (
 	_ Execer   = (*sqlx.Tx)(nil)
 )
 
+const (
+	ErrCodeMySQLDuplicateEntry = 1062
+)
+
+var (
+	ErrAlreadyEntry = errors.New("duplicate entry")
+)
+
 type Repository struct {
 	Clocker clock.Clocker
 }
@@ -51,7 +60,7 @@ func New(ctx context.Context, config *config.Config) (*sqlx.DB, func(), error) {
 		fmt.Sprintf(
 			"%s:%s@tcp(%s:%d)/%s?parseTime=true",
 			config.DBUser, config.DBPassword,
-			config.DBHost, config.Port,
+			config.DBHost, config.DBPort,
 			config.DBName,
 		),
 	)

@@ -2,8 +2,9 @@ package handler
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"go_todo_app/entity"
-	"go_todo_app/store"
 	"go_todo_app/testutil"
 	"net/http"
 	"net/http/httptest"
@@ -49,9 +50,18 @@ func TestAddTask(t *testing.T) {
 				bytes.NewReader(testutil.LoadFile(t, tt.requestFile)),
 			)
 
-			sut := AddTask{Store: &store.TaskStore{
-				Tasks: map[entity.TaskID]*entity.Task{},
-			}, Validator: validator.New()}
+			moq := &AddTaskServiceMock{}
+			moq.AddTaskFunc = func(ctx context.Context, title string) (*entity.Task, error) {
+				if tt.want.status == http.StatusOK {
+					return &entity.Task{ID: 1}, nil
+				}
+				return nil, errors.New("error from mock")
+			}
+
+			sut := AddTask{
+				Service:   moq,
+				Validator: validator.New(),
+			}
 			sut.ServeHTTP(writer, request)
 
 			response := writer.Result()

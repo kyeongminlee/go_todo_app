@@ -27,7 +27,11 @@ func run(ctx context.Context) error {
 	}
 	url := fmt.Sprintf("https://%s", listener.Addr().String())
 	log.Printf("start with: %v", url)
-	mux := NewMux()
+	mux, cleanup, err := NewMux(ctx, cfg)
+	defer cleanup()
+	if err != nil {
+		log.Fatalf("running error: %s", err)
+	}
 	server := NewServer(listener, mux)
 	return server.Run(ctx)
 }
