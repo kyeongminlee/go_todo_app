@@ -67,7 +67,6 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 			Repo: &repository,
 		},
 	}
-	mux.Get("/tasks", listTask.ServeHTTP)
 
 	addTask := &handler.AddTask{
 		Service: &service.AddTask{
@@ -76,7 +75,20 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 		},
 		Validator: validator,
 	}
-	mux.Post("/tasks", addTask.ServeHTTP)
+
+	mux.Route("/tasks", func(r chi.Router) {
+		r.Use(handler.AuthMiddleware(jwter))
+		r.Post("/", addTask.ServeHTTP)
+		r.Get("/", listTask.ServeHTTP)
+	})
+
+	mux.Route("/admin", func(r chi.Router) {
+		r.Use(handler.AuthMiddleware(jwter), handler.AdminMiddleware)
+		r.Get("/", func(writer http.ResponseWriter, request *http.Request) {
+			writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+			writer.Write([]byte(`{"message": "admin only"}`))
+		})
+	})
 
 	return mux, cleanup, nil
 }
