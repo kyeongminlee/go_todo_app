@@ -18,3 +18,11 @@ type TaskLister interface {
 type UserRegister interface {
 	RegisterUser(ctx context.Context, db store.Execer, t *entity.User) error
 }
+
+type UserGetter interface {
+	GetUser(ctx context.Context, db store.Queryer, name string) (*entity.User, error)
+}
+
+type TokenGenerator interface {
+	GenerateToken(ctx context.Context, user entity.User) ([]byte, error)
+}
