@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"go_todo_app/auth"
 	"go_todo_app/clock"
 	"go_todo_app/config"
 	"go_todo_app/handler"
@@ -27,26 +28,19 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 		log.Fatalf("db setting error: %v", err)
 		return nil, cleanup, err
 	}
+	clocker := clock.RealClocker{}
 	repository := store.Repository{
 		Clocker: clock.RealClocker{},
 	}
-
-	addTask := &handler.AddTask{
-		Service: &service.AddTask{
-			DB:   db,
-			Repo: &repository,
-		},
-		Validator: validator,
+	redisClient, err := store.NewKVS(ctx, cfg)
+	if err != nil {
+		log.Fatalf("redis setting error: %v", err)
+		return nil, cleanup, err
 	}
-	mux.Post("/tasks", addTask.ServeHTTP)
-
-	listTask := &handler.ListTask{
-		Service: &service.ListTask{
-			DB:   db,
-			Repo: &repository,
-		},
+	jwter, err := auth.NewJWTer(redisClient, clocker)
+	if err != nil {
+		return nil, cleanup, err
 	}
-	mux.Get("/tasks", listTask.ServeHTTP)
 
 	registerUser := &handler.RegisterUser{
 		Service: &service.RegisterUser{
@@ -56,6 +50,45 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 		Validator: validator,
 	}
 	mux.Post("/register", registerUser.ServeHTTP)
+
+	login := &handler.Login{
+		Service: &service.Login{
+			DB:             db,
+			Repository:     &repository,
+			TokenGenerator: jwter,
+		},
+		Validator: validator,
+	}
+	mux.Post("/login", login.ServedHTTP)
+
+	listTask := &handler.ListTask{
+		Service: &service.ListTask{
+			DB:   db,
+			Repo: &repository,
+		},
+	}
+
+	addTask := &handler.AddTask{
+		Service: &service.AddTask{
+			DB:   db,
+			Repo: &repository,
+		},
+		Validator: validator,
+	}
+
+	mux.Route("/tasks", func(r chi.Router) {
+		r.Use(handler.AuthMiddleware(jwter))
+		r.Post("/", addTask.ServeHTTP)
+		r.Get("/", listTask.ServeHTTP)
+	})
+
+	mux.Route("/admin", func(r chi.Router) {
+		r.Use(handler.AuthMiddleware(jwter), handler.AdminMiddleware)
+		r.Get("/", func(writer http.ResponseWriter, request *http.Request) {
+			writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+			writer.Write([]byte(`{"message": "admin only"}`))
+		})
+	})
 
 	return mux, cleanup, nil
 }
